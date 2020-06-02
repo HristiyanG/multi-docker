@@ -1,0 +1,18 @@
+sudo: required
+services:
+    - docker
+
+before_install:
+    - docker build -t metselder/react-test -f ./client/Dockerfile.dev ./client/Dockerfile.dec
+
+script:
+  - docker run -e CI=true metselder/react-test npm test
+
+after_success:
+    - docker build -t metselder/multi-client ./client
+    - docker build -t metselder/multi-nginx ./nginx
+    - docker build -t metselder/multi-server ./server
+    - docker build -t metselder/multi-worker ./worker
+
+
+# login to Docker Hub

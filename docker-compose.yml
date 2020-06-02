@@ -1,0 +1,47 @@
+version: '3'
+services:
+    nginx:
+        restart: always
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./nginx
+        ports: 
+            - '3050:80'
+    postgres:
+        image: 'postgres:latest'
+        environment:
+            - POSTGRES_PASSWORD=postgres_password
+    redis: 
+        image: 'redis:latest'
+    api:
+        build:
+            context: ./server
+            dockerfile: Dockerfile.dev
+        volumes: 
+            - /app/node_modules #по този начин като оказвам само директория от самия контейнер му казвам изрично да си ползва нея, вместо да се override-ва от локалния. Причината за това е, че по време на инициализация ще се опита да мапне локалните node_modules в имиджа, но тук не съм ги инсталирал, съответно няма да ги намери и ще изгърми
+            - ./server:/app #така оказвам че искам всички файлове от ./server да  override-нат тези в имиджа в директория /app (която ако видя в докер файла е моята WORKDIR). Това е много добро, защото като правя сега промени на локалния веднага ще рефлектират в/у докерския имидж и веднага виждам промените
+        environment:
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - PGUSER=postgres
+            - PGHOST=postgres
+            - PGDATABASE=postgres
+            - PGPASSWORD=postgres_password
+            - PGPORT=5432
+    client:
+        build: 
+            context: ./client
+            dockerfile: Dockerfile.dev
+        volumes: 
+            - /app/node_modules
+            - ./client:/app
+    worker:
+        build:
+            context: ./worker
+            dockerfile: Dockerfile.dev
+        environment:
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+        volumes: 
+            - /app/node_modules
+            - ./worker:/app
